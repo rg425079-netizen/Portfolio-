@@ -1,1 +1,200 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Management System</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  margin: 0;
+  padding: 20px;
+}
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 5px 20px #0001;
+}
+h1 {
+  text-align: center;
+  color: #1e3a8a;
+}
+form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 15px;
+}
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 7px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+form button {
+  grid-column: 1 / -1;
+}
+button:hover {
+  background: #1d4ed8;
+}
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 25px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 550px;
+}
+th, td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+th {
+  background: #dbeafe;
+}
+.delete {
+  background: #dc2626;
+  padding: 8px 12px;
+}
+.delete:hover {
+  background: #b91c1c;
+}
+#message {
+  text-align: center;
+  color: #15803d;
+}
+@media(max-width: 550px) {
+  form {
+    grid-template-columns: 1fr;
+  }
+  form button {
+    grid-column: auto;
+  }
+  .container {
+    padding: 15px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Student Management System</h1>
+  <p>Add and manage student records easily.</p>
+
+  <form id="studentForm">
+    <input id="name" placeholder="Student Name" required>
+    <input id="roll" placeholder="Roll Number" required>
+    <input id="className" placeholder="Class" required>
+    <input id="marks" type="number" min="0" max="100"
+      placeholder="Marks (0-100)" required>
+    <button type="submit">Add Student</button>
+  </form>
+
+  <p id="message"></p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Roll No.</th>
+          <th>Class</th>
+          <th>Marks</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="studentList"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let students = JSON.parse(
+  localStorage.getItem("students") || "[]"
+);
+
+const form = document.getElementById("studentForm");
+const list = document.getElementById("studentList");
+const message = document.getElementById("message");
+
+function displayStudents() {
+  list.innerHTML = "";
+
+  students.forEach((student, index) => {
+    const row = document.createElement("tr");
+
+    [student.name, student.roll, student.className,
+     student.marks].forEach(value => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+
+    const actionCell = document.createElement("td");
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.className = "delete";
+    deleteButton.addEventListener("click", () => {
+      students.splice(index, 1);
+      saveStudents();
+      displayStudents();
+    });
+
+    actionCell.appendChild(deleteButton);
+    row.appendChild(actionCell);
+    list.appendChild(row);
+  });
+}
+
+function saveStudents() {
+  localStorage.setItem("students", JSON.stringify(students));
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const student = {
+    name: document.getElementById("name").value.trim(),
+    roll: document.getElementById("roll").value.trim(),
+    className: document.getElementById("className").value.trim(),
+    marks: document.getElementById("marks").value
+  };
+
+  if (students.some(s => s.roll.toLowerCase() === student.roll.toLowerCase())) {
+    message.textContent = "This roll number already exists!";
+    return;
+  }
+
+  students.push(student);
+  saveStudents();
+  displayStudents();
+  form.reset();
+  message.textContent = "Student added successfully!";
+});
+
+displayStudents();
+</script>
+
+</body>
+</html>
+
