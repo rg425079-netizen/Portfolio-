@@ -1,1 +1,241 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Website</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #2563eb, #38bdf8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  color: white;
+}
+
+.weather-card {
+  width: 100%;
+  max-width: 430px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 22px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 15px 40px #0003;
+  backdrop-filter: blur(12px);
+}
+
+h1 {
+  margin-top: 0;
+}
+
+.search {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  min-width: 0;
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  font-size: 15px;
+}
+
+button {
+  padding: 13px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #facc15;
+  color: #1e293b;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #fde047;
+}
+
+.weather-icon {
+  font-size: 75px;
+  margin: 18px 0 5px;
+}
+
+.temperature {
+  font-size: 55px;
+  font-weight: bold;
+  margin: 5px;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.detail {
+  background: rgba(255,255,255,0.15);
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.detail p {
+  margin: 7px 0 0;
+  font-size: 19px;
+  font-weight: bold;
+}
+
+#message {
+  min-height: 20px;
+  font-size: 14px;
+}
+
+@media(max-width: 360px) {
+  .weather-card {
+    padding: 18px;
+  }
+
+  button {
+    padding: 12px 10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="weather-card">
+  <h1>🌤️ Weather App</h1>
+  <p>Check the weather in your city</p>
+
+  <form class="search" id="searchForm">
+    <input id="cityInput" placeholder="Enter city name" required>
+    <button type="submit">Search</button>
+  </form>
+
+  <p id="message" role="status"></p>
+
+  <div id="weatherResult" hidden>
+    <h2 id="cityName"></h2>
+    <div class="weather-icon" id="weatherIcon">🌤️</div>
+    <div class="temperature" id="temperature"></div>
+    <h3 id="condition"></h3>
+
+    <div class="details">
+      <div class="detail">
+        💧 Humidity
+        <p id="humidity"></p>
+      </div>
+
+      <div class="detail">
+        💨 Wind Speed
+        <p id="wind"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById("searchForm");
+const input = document.getElementById("cityInput");
+const message = document.getElementById("message");
+const result = document.getElementById("weatherResult");
+
+function weatherInfo(code) {
+  if (code === 0) return ["☀️", "Clear Sky"];
+  if (code <= 3) return ["🌤️", "Partly Cloudy"];
+  if (code <= 48) return ["🌫️", "Foggy"];
+  if (code <= 57) return ["🌦️", "Drizzle"];
+  if (code <= 67) return ["🌧️", "Rain"];
+  if (code <= 77) return ["❄️", "Snow"];
+  if (code <= 82) return ["🌧️", "Rain Showers"];
+  if (code <= 86) return ["🌨️", "Snow Showers"];
+  if (code <= 99) return ["⛈️", "Thunderstorm"];
+  return ["🌡️", "Unknown"];
+}
+
+async function getWeather(city) {
+  message.textContent = "Loading weather...";
+  result.hidden = true;
+
+  try {
+    const geoResponse = await fetch(
+      "https://geocoding-api.open-meteo.com/v1/search?name=" +
+      encodeURIComponent(city) + "&count=1&language=en&format=json"
+    );
+
+    if (!geoResponse.ok) throw new Error("Unable to search city.");
+
+    const geoData = await geoResponse.json();
+
+    if (!geoData.results || geoData.results.length === 0) {
+      throw new Error("City not found. Try another name.");
+    }
+
+    const place = geoData.results[0];
+
+    const weatherResponse = await fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=" +
+      place.latitude + "&longitude=" + place.longitude +
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto"
+    );
+
+    if (!weatherResponse.ok) throw new Error("Weather service unavailable.");
+
+    const data = await weatherResponse.json();
+    const current = data.current;
+    const info = weatherInfo(current.weather_code);
+
+    document.getElementById("cityName").textContent =
+      place.name + (place.country ? ", " + place.country : "");
+
+    document.getElementById("weatherIcon").textContent = info[0];
+    document.getElementById("temperature").textContent =
+      Math.round(current.temperature_2m) + "°C";
+
+    document.getElementById("condition").textContent = info[1];
+
+    document.getElementById("humidity").textContent =
+      current.relative_humidity_2m + "%";
+
+    document.getElementById("wind").textContent =
+      current.wind_speed_10m + " km/h";
+
+    message.textContent =
+      "Feels like " + Math.round(current.apparent_temperature) + "°C";
+
+    result.hidden = false;
+
+  } catch (error) {
+    message.textContent = error.message ||
+      "Something went wrong. Please try again.";
+  }
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const city = input.value.trim();
+
+  if (city) getWeather(city);
+});
+
+getWeather("Mumbai");
+</script>
+
+</body>
+</html>
+
